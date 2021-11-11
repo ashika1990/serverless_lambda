@@ -1,0 +1,57 @@
+service: demo-lambda
+
+custom:
+  bucket: testbucketvd
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: ap-southeast-1
+  stackName: imageUploader
+  apiGateway:
+    restApiId:
+      "Fn::ImportValue": SharedGW-restApiId
+    restApiRootResourceId:
+      "Fn::ImportValue": SharedGW-rootResourceId
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+       - "s3:PutObject"  
+       - "s3:GetObject"  
+       - "s3:ListBucket"
+       - "s3:DeleteObject"
+       - "s3:PutObjectAcl"
+       - "s3:CreateObject"
+       - "s3:ListObjects"
+      Resource: 
+        - "arn:aws:s3:::${self:custom.bucket}"
+        - "arn:aws:s3:::${self:custom.bucket}/*"    
+
+functions:
+  UploadImage:
+    handler: uploadImage.handler
+    # The `events` block defines how to trigger the uploadImage.handler code
+    events:
+      - http:
+          path: upload
+          method: post
+          cors: true
+    environment:
+      Bucket: ${self:custom.bucket}  
+  DownloadImage:
+    handler: downloadImage.handler
+    # The `events` block defines how to trigger the uploadImage.handler code
+    events:
+      - http:
+          path: download
+          method: get
+          cors: true
+    environment:
+      Bucket: ${self:custom.bucket}      
+          
+resources:
+  Resources:
+    StorageBucket:
+      Type: "AWS::S3::Bucket"
+      Properties:
+        BucketName: ${self:custom.bucket}
